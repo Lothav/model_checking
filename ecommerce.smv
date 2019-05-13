@@ -1,0 +1,39 @@
+MODULE main
+
+VAR
+  request_1 	: boolean;
+  request_2 	: boolean;
+  paid_1	: boolean;
+  paid_2	: boolean;
+  clear_1   	: boolean;
+  clear_2   	: boolean;
+  product_state : {available, sold_out, in_chart_1, in_chart_2};
+  product_count : 0..1000;
+ 
+ASSIGN
+  init(product_state) := available;
+  next(product_state) := case
+                   	   product_state = available  & request_1 : in_chart_1;
+			   product_state = available  & request_2 : in_chart_2;
+                   	   product_state = in_chart_1 & clear_1   : available;
+                   	   product_state = in_chart_2 & clear_2   : available;
+			   product_state = in_chart_1 & paid_1    : sold_out;
+			   product_state = in_chart_2 & paid_2    : sold_out;
+			   TRUE : product_state;
+                 	 esac;
+
+  init(product_count) := 100;
+  next(product_count) := case
+			   product_count > 0 : product_count - 1;
+			   TRUE : product_count;
+			 esac;
+
+SPEC AG((request_1 & !request_2 & product_state = available) -> AF product_state = in_chart_1)
+SPEC AG((request_2 & !request_1 & product_state = available) -> AF product_state = in_chart_2)
+SPEC AG( request_1 &  request_2 & product_state = available  -> AF product_state in {in_chart_1, in_chart_2})
+SPEC AG(product_state = sold_out -> AG(product_state = sold_out))
+
+FAIRNESS request_1
+FAIRNESS clear_1
+FAIRNESS request_2
+FAIRNESS clear_2
